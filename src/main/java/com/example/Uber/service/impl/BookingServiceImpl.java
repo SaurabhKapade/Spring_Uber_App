@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+
 public class BookingServiceImpl implements BookingService {
     
     private final BookingRepository bookingRepository;

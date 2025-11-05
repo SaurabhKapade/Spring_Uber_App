@@ -28,21 +28,30 @@ public class RedisLocationService implements LocationService {
     }
 
     @Override
-    public List<DriverLocationDto> getNearbyDrivers(Double lattitude, Double longitude, Double radius) {
-        GeoOperations<String,String> geoOperations = stringRedisTemplate.opsForGeo();
-        Distance distanceRadius = new Distance(radius, Metrics.KILOMETERS);
-        Circle circle = new Circle(new Point(lattitude,longitude),radius);
-        GeoResults<GeoLocation<String>> results = geoOperations.radius(DRIVER_GEO_OPS_KEY,circle);
+    public List<DriverLocationDto> getNearbyDrivers(Double latitude, Double longitude, Double radius) {
+        GeoOperations<String, String> geoOperations = stringRedisTemplate.opsForGeo();
+
+        Distance circleRadius = new Distance(radius, Metrics.KILOMETERS);
+
+        Circle circle = new Circle(new Point(latitude, longitude), circleRadius);
+
+        GeoResults<GeoLocation<String>> results = geoOperations.radius(DRIVER_GEO_OPS_KEY, circle); // query redis
+
         List<DriverLocationDto> driverLocations = new ArrayList<>();
-        for(GeoResult<GeoLocation<String>> result :results){
-            Point point = geoOperations.position(DRIVER_GEO_OPS_KEY, result.getContent().getName()).get(0);
+
+        for(GeoResult<GeoLocation<String>> result : results) {
+
+            Point point = geoOperations.position(DRIVER_GEO_OPS_KEY, result.getContent().getName()).get(0); // location of individual driver in redis
+
             DriverLocationDto driverLocation = DriverLocationDto.builder()
                     .driverId(result.getContent().getName())
                     .lattitude(point.getY())
                     .longitude(point.getX())
                     .build();
+
             driverLocations.add(driverLocation);
         }
+
         return driverLocations;
     }
 }
