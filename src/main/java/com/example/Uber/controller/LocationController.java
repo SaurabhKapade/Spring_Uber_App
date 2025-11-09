@@ -1,13 +1,11 @@
 package com.example.Uber.controller;
 
 import com.example.Uber.dto.DriverLocationDto;
-import com.example.Uber.dto.DriverRequest;
 import com.example.Uber.dto.NearbyDriversRequest;
 import com.example.Uber.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

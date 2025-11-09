@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ReviewResponse {
+    private Long reviewId;
     private Long passengerId;
     private Long driverId;
     private Long bookingId;
