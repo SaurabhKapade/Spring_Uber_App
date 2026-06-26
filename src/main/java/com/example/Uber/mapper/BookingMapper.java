@@ -5,20 +5,32 @@ import com.example.Uber.dto.BookingResponse;
 import com.example.Uber.entity.Booking;
 import com.example.Uber.entity.Driver;
 import com.example.Uber.entity.Passenger;
+import com.example.Uber.service.FareCalculateService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class BookingMapper {
-    
+    private final FareCalculateService fareCalculateService;
     public Booking toEntity(BookingRequest request, Passenger passenger, Driver driver) {
         Booking.BookingStatus status = driver != null ? Booking.BookingStatus.CONFIRMED : Booking.BookingStatus.PENDING;
         
         return Booking.builder()
                 .passenger(passenger)
                 .driver(driver)
-                .pickupLocation(request.getPickupLocation())
-                .dropoffLocation(request.getDropoffLocation())
-                .fare(request.getFare())
+                .pickupLocationLattitude(request.getPickupLocationLattitude())
+                .pickupLocationLongitude(request.getPickupLocationLongitude())
+                .dropoffLocationLongitude(request.getDropoffLocationLongitude())
+                .dropoffLocationLongitude(request.getDropoffLocationLongitude())
+                .fare(
+                        fareCalculateService.calculateFare(
+                                request.getPickupLocationLattitude(),
+                                request.getPickupLocationLongitude(),
+                                request.getDropoffLocationLattitude(),
+                                request.getDropoffLocationLongitude()
+                        )
+                )
                 .status(status)
                 .scheduledPickupTime(request.getScheduledPickupTime())
                 .build();
@@ -31,8 +43,10 @@ public class BookingMapper {
                 .passengerName(booking.getPassenger() != null ? booking.getPassenger().getName() : null)
                 .driverId(booking.getDriver() != null ? booking.getDriver().getId() : null)
                 .driverName(booking.getDriver() != null ? booking.getDriver().getName() : null)
-                .pickupLocation(booking.getPickupLocation())
-                .dropoffLocation(booking.getDropoffLocation())
+                .pickupLocationLattitude(booking.getPickupLocationLattitude())
+                .pickupLocationLongitude(booking.getPickupLocationLongitude())
+                .dropoffLocationLattitude(booking.getDropoffLocationLattitude())
+                .dropoffLocationLongitude(booking.getPickupLocationLongitude())
                 .status(booking.getStatus())
                 .fare(booking.getFare())
                 .createdAt(booking.getCreatedAt())
@@ -46,9 +60,11 @@ public class BookingMapper {
     public void updateEntity(Booking booking, BookingRequest request, Passenger passenger, Driver driver) {
         booking.setPassenger(passenger);
         booking.setDriver(driver);
-        booking.setPickupLocation(request.getPickupLocation());
-        booking.setDropoffLocation(request.getDropoffLocation());
-        booking.setFare(request.getFare());
+        booking.setDropoffLocationLattitude(request.getDropoffLocationLattitude());
+        booking.setPickupLocationLongitude(request.getPickupLocationLongitude());
+        booking.setDropoffLocationLattitude(request.getDropoffLocationLattitude());
+        booking.setDropoffLocationLongitude(request.getDropoffLocationLongitude());
+        booking.setFare(booking.getFare());
         booking.setScheduledPickupTime(request.getScheduledPickupTime());
         
         // Update status based on driver assignment

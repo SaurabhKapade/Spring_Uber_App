@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.example.Uber ;
+
+option java_multiple_files = true;
+option java_package = 'com.example.Uber';
+option java_outer_classname = 'Ride';
+
+message RideAcceptanceRequest{
+  int32 driver_id = 1;
+  int32 booking_id = 2;
+}
+message RideAcceptanceResponse{
+  bool success = 1;
+}
+
+service RideService{
+  rpc acceptRide(RideAcceptanceRequest) returns (RideAcceptanceResponse);
+}
+
+
+message RideNotificationRequest{
+  double pickUpLocationLattitude = 1;
+  double pickUpLocationLongitude = 2;
+  double dropoffLocationLattitude = 3;
+  double dropoffLocationLongitude = 4;
+  int32 bookingId = 5;
+  repeated int32 driverIds = 6;
+}
+message RideNotificationResponse{
+  bool success = 1;
+}
+service RideNotificationService{
+  rpc notifyDriversForNewRide(RideNotificationRequest) returns (RideNotificationResponse);
+}

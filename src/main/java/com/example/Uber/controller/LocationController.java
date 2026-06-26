@@ -20,7 +20,7 @@ public class LocationController {
 
     @PostMapping
     public ResponseEntity<Boolean> saveDriverLocation(@RequestBody  DriverLocationDto driverLocationDto){
-        Boolean saved = locationService.saveDriverLocation(driverLocationDto.getDriverId(), driverLocationDto.getLattitude(), driverLocationDto.getLongitude());
+        Boolean saved = locationService.saveDriverLocation(driverLocationDto.getDriverId().toString(), driverLocationDto.getLattitude(), driverLocationDto.getLongitude());
         return ResponseEntity.ok(saved);
     }
 

@@ -1,7 +1,9 @@
 package com.example.Uber.service.impl;
 
+import com.example.Uber.Client.GrpcClient;
 import com.example.Uber.dto.BookingRequest;
 import com.example.Uber.dto.BookingResponse;
+import com.example.Uber.dto.DriverLocationDto;
 import com.example.Uber.entity.Booking;
 import com.example.Uber.entity.Driver;
 import com.example.Uber.entity.Passenger;
@@ -10,6 +12,8 @@ import com.example.Uber.repository.BookingRepository;
 import com.example.Uber.repository.DriverRepository;
 import com.example.Uber.repository.PassengerRepository;
 import com.example.Uber.service.BookingService;
+import com.example.Uber.service.FareCalculateService;
+import com.example.Uber.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +33,9 @@ public class BookingServiceImpl implements BookingService {
     private final PassengerRepository passengerRepository;
     private final DriverRepository driverRepository;
     private final BookingMapper bookingMapper;
+    private final LocationService locationService;
+    private final FareCalculateService fareCalculateService;
+    private final GrpcClient grpcClient;
     
     @Override
     @Transactional(readOnly = true)
@@ -70,25 +77,30 @@ public class BookingServiceImpl implements BookingService {
         Passenger passenger = passengerRepository.findById(request.getPassengerId())
                 .orElseThrow(() -> new IllegalArgumentException("Passenger not found with id: " + request.getPassengerId()));
         
-        Driver driver = null;
-        if (request.getDriverId() != null) {
-            driver = driverRepository.findById(request.getDriverId())
-                    .orElseThrow(() -> new IllegalArgumentException("Driver not found with id: " + request.getDriverId()));
-            
-            if (!driver.getIsAvailable()) {
-                throw new IllegalArgumentException("Driver with id " + request.getDriverId() + " is not available");
-            }
-        }
-        
-        Booking booking = bookingMapper.toEntity(request, passenger, driver);
-        
-        // If driver is assigned, mark as unavailable
-        if (driver != null) {
-            driver.setIsAvailable(false);
-            driverRepository.save(driver);
-        }
-        
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking newBooking = Booking.builder()
+                .passenger(passenger)
+                .pickupLocationLattitude(request.getPickupLocationLattitude())
+                .pickupLocationLongitude(request.getPickupLocationLongitude())
+                .dropoffLocationLattitude(request.getDropoffLocationLattitude())
+                .dropoffLocationLongitude(request.getDropoffLocationLongitude())
+                .status(Booking.BookingStatus.PENDING)
+                .fare(
+                        fareCalculateService.calculateFare(
+                                request.getPickupLocationLattitude(),
+                                request.getPickupLocationLongitude(),
+                                request.getDropoffLocationLattitude(),
+                                request.getDropoffLocationLongitude()
+                        )
+                )
+                .createdAt(LocalDateTime.now())
+                .scheduledPickupTime(LocalDateTime.now())
+                .build();
+
+        Booking savedBooking = bookingRepository.save(newBooking);
+
+        List<DriverLocationDto> drivers = locationService.getNearbyDrivers(request.getPickupLocationLattitude(), request.getPickupLocationLongitude(), 10.0);
+        //........Hitting gRPC call to notify drivers
+        grpcClient.notifyDriversForNewRide(request.getPickupLocationLattitude(),request.getPickupLocationLongitude(), request.getDropoffLocationLattitude(), request.getDropoffLocationLongitude(),savedBooking.getId().intValue(),drivers.stream().map(DriverLocationDto::getDriverId).collect(Collectors.toList()));
         return bookingMapper.toResponse(savedBooking);
     }
     
@@ -156,7 +168,19 @@ public class BookingServiceImpl implements BookingService {
         Booking updatedBooking = bookingRepository.save(booking);
         return bookingMapper.toResponse(updatedBooking);
     }
-    
+
+    @Override
+    public Boolean acceptRide(Long id, Integer driverId) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(()-> new IllegalArgumentException("BOoking not found with id:"+id));
+
+        booking.setDriver(driverRepository.findById(driverId));
+
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
+        return true;
+    }
+
     @Override
     public void deleteById(Long id) {
         Booking booking = bookingRepository.findById(id)
